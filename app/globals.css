@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(57, 217, 138, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(110, 231, 249, 0.16), transparent 24%),
+    linear-gradient(180deg, #08111f 0%, #07101c 40%, #050b15 100%);
+  color: #f3f7ff;
+  font-family: "Avenir Next", "SF Pro Display", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 100%);
+  pointer-events: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(110, 231, 249, 0.22);
+  color: #ffffff;
+}
+
+.panel-surface {
+  background: linear-gradient(180deg, rgba(15, 25, 43, 0.96), rgba(8, 16, 29, 0.92));
+  border: 1px solid rgba(143, 166, 199, 0.12);
+  box-shadow: 0 24px 80px rgba(2, 8, 20, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.panel-muted {
+  background: linear-gradient(180deg, rgba(16, 29, 50, 0.86), rgba(8, 16, 29, 0.74));
+  border: 1px solid rgba(143, 166, 199, 0.1);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #b0c5e8 42%, #6ee7f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143, 166, 199, 0.35) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(143, 166, 199, 0.35);
+  border-radius: 999px;
+}
