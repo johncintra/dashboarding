@@ -10,6 +10,7 @@ type AccumulatedLineChartProps = {
   data: DashboardSeriesPoint[];
   summary: DashboardSummary;
   currentElapsedHours: number;
+  selectedDay?: number | "all";
   heightClassName?: string;
 };
 
@@ -32,20 +33,28 @@ function getNiceAxisMax(value: number) {
   return niceNormalized * magnitude;
 }
 
-export function AccumulatedLineChart({
-  data,
-  summary,
-  currentElapsedHours,
-  heightClassName = "h-[360px]",
-}: AccumulatedLineChartProps) {
-  const safeElapsedHours = Math.max(0, Math.min(CAPTURE_DAYS * 24, currentElapsedHours));
-  const currentDay = Math.max(1, Math.ceil(safeElapsedHours / 24) || 1);
-  const visibleDayLabels = Math.min(CAPTURE_DAYS, Math.max(3, currentDay + 1));
-  const axisMaxHours = Math.max(48, (visibleDayLabels - 1) * 24);
+function interpolateValue(
+  hour: number,
+  left: DashboardSeriesPoint,
+  right: DashboardSeriesPoint,
+  key: "current" | "previous1" | "previous2",
+) {
+  if (right.time === left.time) {
+    return right[key];
+  }
 
-  const hasDetailedSeries = data.some((point) => point.time > 0);
-  const normalizedSeries = hasDetailedSeries
-    ? data
+  const ratio = (hour - left.time) / (right.time - left.time);
+  return left[key] + (right[key] - left[key]) * ratio;
+}
+
+function buildHourlySeries(
+  points: DashboardSeriesPoint[],
+  safeElapsedHours: number,
+  summary: DashboardSummary,
+) {
+  const hasDetailedSeries = points.some((point) => point.time > 0);
+  const baseSeries = hasDetailedSeries
+    ? points
         .map((point) => ({
           time: point.time,
           current: point.current,
@@ -62,6 +71,107 @@ export function AccumulatedLineChart({
           previous2: summary.previous2,
         },
       ];
+
+  if (baseSeries.length <= 1) {
+    return baseSeries;
+  }
+
+  const maxHour = Math.max(1, Math.ceil(Math.max(safeElapsedHours, baseSeries.at(-1)?.time ?? 0)));
+  const hourlySeries: DashboardSeriesPoint[] = [];
+
+  for (let hour = 0; hour <= maxHour; hour += 1) {
+    const exactPoint = baseSeries.find((point) => point.time === hour);
+
+    if (exactPoint) {
+      hourlySeries.push(exactPoint);
+      continue;
+    }
+
+    const rightIndex = baseSeries.findIndex((point) => point.time > hour);
+
+    if (rightIndex === -1) {
+      const lastPoint = baseSeries.at(-1)!;
+      hourlySeries.push({
+        time: hour,
+        current: lastPoint.current,
+        previous1: lastPoint.previous1,
+        previous2: lastPoint.previous2,
+      });
+      continue;
+    }
+
+    const rightPoint = baseSeries[rightIndex];
+    const leftPoint = baseSeries[Math.max(0, rightIndex - 1)];
+
+    hourlySeries.push({
+      time: hour,
+      current: interpolateValue(hour, leftPoint, rightPoint, "current"),
+      previous1: interpolateValue(hour, leftPoint, rightPoint, "previous1"),
+      previous2: interpolateValue(hour, leftPoint, rightPoint, "previous2"),
+    });
+  }
+
+  const hasExactCurrentPoint = hourlySeries.some((point) => point.time === safeElapsedHours);
+
+  if (!hasExactCurrentPoint && safeElapsedHours > 0) {
+    const lastPoint = baseSeries.at(-1)!;
+    hourlySeries.push({
+      time: safeElapsedHours,
+      current: lastPoint.current,
+      previous1: lastPoint.previous1,
+      previous2: lastPoint.previous2,
+    });
+  }
+
+  return hourlySeries.sort((left, right) => left.time - right.time);
+}
+
+function buildAxisLabel(value: number, selectedDay: number | "all", dayStartHour: number) {
+  if (selectedDay === "all") {
+    return `Dia ${Math.floor(value / 24) + 1}`;
+  }
+
+  return `${Math.round(value - dayStartHour)}h`;
+}
+
+function buildTooltipTitle(axisValue: number) {
+  const day = Math.floor(axisValue / 24) + 1;
+  const hours = Math.floor(axisValue % 24);
+  return `Dia ${day} · ${hours}h`;
+}
+
+export function AccumulatedLineChart({
+  data,
+  summary,
+  currentElapsedHours,
+  selectedDay = "all",
+  heightClassName = "h-[360px]",
+}: AccumulatedLineChartProps) {
+  const safeElapsedHours = Math.max(0, Math.min(CAPTURE_DAYS * 24, currentElapsedHours));
+  const currentDay = Math.max(1, Math.ceil(safeElapsedHours / 24) || 1);
+  const visibleDayLabels = Math.min(CAPTURE_DAYS, Math.max(3, currentDay + 1));
+  const axisMaxHours = Math.max(48, (visibleDayLabels - 1) * 24);
+  const hourlySeries = buildHourlySeries(data, safeElapsedHours, summary);
+
+  const dayStartHour = selectedDay === "all" ? 0 : (selectedDay - 1) * 24;
+  const dayEndHour = selectedDay === "all" ? axisMaxHours : Math.min(selectedDay * 24, CAPTURE_DAYS * 24);
+
+  const dayStartPoint = hourlySeries
+    .filter((point) => point.time <= dayStartHour)
+    .at(-1) ?? { time: dayStartHour, current: 0, previous1: 0, previous2: 0 };
+
+  const normalizedSeries =
+    selectedDay === "all"
+      ? hourlySeries.filter((point) => point.time <= axisMaxHours)
+      : [
+          {
+            time: dayStartHour,
+            current: dayStartPoint.current,
+            previous1: dayStartPoint.previous1,
+            previous2: dayStartPoint.previous2,
+          },
+          ...hourlySeries.filter((point) => point.time > dayStartHour && point.time <= dayEndHour),
+        ];
 
   const maxValue = Math.max(
     10,
@@ -87,10 +197,9 @@ export function AccumulatedLineChart({
           value: [number, number];
           color: string;
         }>;
+
         const axisValue = Number(points[0]?.axisValue ?? 0);
-        const day = Math.floor(axisValue / 24) + 1;
-        const hours = Math.floor(axisValue % 24);
-        const header = `<div style="margin-bottom:10px;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#8fa6c7">Dia ${day} · ${hours}h</div>`;
+        const header = `<div style="margin-bottom:10px;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#8fa6c7">${buildTooltipTitle(axisValue)}</div>`;
         const rows = points
           .filter((point) => point.value?.[1] !== null)
           .map(
@@ -98,6 +207,7 @@ export function AccumulatedLineChart({
               `<div style="display:flex;justify-content:space-between;gap:20px;margin:6px 0;"><span style="color:${point.color}">${point.seriesName}</span><strong>${formatWholeNumber(point.value[1])}</strong></div>`,
           )
           .join("");
+
         return `${header}${rows}`;
       },
     },
@@ -116,15 +226,15 @@ export function AccumulatedLineChart({
     },
     xAxis: {
       type: "value",
-      min: 0,
-      max: axisMaxHours,
-      interval: 24,
+      min: selectedDay === "all" ? 0 : dayStartHour,
+      max: dayEndHour,
+      interval: selectedDay === "all" ? 24 : 4,
       axisLabel: {
         color: "#8fa6c7",
         showMinLabel: true,
         showMaxLabel: true,
         hideOverlap: false,
-        formatter: (value: number) => `Dia ${Math.floor(Number(value) / 24) + 1}`,
+        formatter: (value: number) => buildAxisLabel(Number(value), selectedDay, dayStartHour),
       },
       axisLine: {
         lineStyle: { color: "rgba(143,166,199,0.18)" },

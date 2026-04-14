@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -51,6 +53,18 @@ function getDeltaFooter(delta: number, label: string) {
 
 export function DashboardView({ tvMode = false }: DashboardViewProps) {
   const { data, error, isLoading, isRefreshing, lastUpdated } = useDashboardData();
+  const [selectedCurveDay, setSelectedCurveDay] = useState<number | "all">("all");
+  const safeLastUpdated = lastUpdated ?? Date.now();
+  const currentElapsedHoursForFilter = Math.max(
+    0,
+    (new Date(safeLastUpdated).getTime() - new Date(CURRENT_CAPTURE_START_AT).getTime()) /
+      (1000 * 60 * 60),
+  );
+  const currentElapsedDayForFilter = Math.max(1, Math.ceil(currentElapsedHoursForFilter / 24));
+  const curveFilterDays = useMemo(
+    () => Array.from({ length: currentElapsedDayForFilter }, (_, index) => index + 1),
+    [currentElapsedDayForFilter],
+  );
 
   if (isLoading) {
     return <LoadingDashboard tvMode={tvMode} />;
@@ -226,10 +240,50 @@ export function DashboardView({ tvMode = false }: DashboardViewProps) {
               A linha principal acompanha o lançamento atual, enquanto os benchmarks seguem exatamente o mesmo tempo desde o início de cada captação.
             </p>
           </div>
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Filtro
+            </span>
+            <div className="relative min-w-[190px]">
+              <select
+                value={selectedCurveDay === "all" ? "all" : String(selectedCurveDay)}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setSelectedCurveDay(nextValue === "all" ? "all" : Number(nextValue));
+                }}
+                className="h-11 w-full appearance-none rounded-full border border-white/10 bg-white/[0.04] px-4 pr-11 text-sm font-medium text-slate-100 outline-none transition hover:bg-white/[0.06] focus:border-cyan-300/30 focus:bg-white/[0.07]"
+              >
+                <option value="all">Visão geral</option>
+                {curveFilterDays.map((day) => (
+                  <option key={day} value={day}>
+                    Dia {day}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                <svg
+                  width="12"
+                  height="8"
+                  viewBox="0 0 12 8"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M1 1.25L6 6.25L11 1.25"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
           <AccumulatedLineChart
             data={data.series}
             summary={data.summary}
             currentElapsedHours={currentElapsedHours}
+            selectedDay={selectedCurveDay}
             heightClassName={tvMode ? "h-[420px]" : "h-[380px]"}
           />
         </article>
