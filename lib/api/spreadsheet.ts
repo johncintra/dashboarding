@@ -126,14 +126,15 @@ function buildSeries(
   elapsedMs: number,
 ): DashboardSeriesPoint[] {
   const elapsedHours = Math.max(0, elapsedMs / HOUR_MS);
+  const preciseElapsedHours = Number(elapsedHours.toFixed(2));
   const stepHours =
     elapsedHours <= 48 ? 1 : elapsedHours <= 120 ? 6 : elapsedHours <= 240 ? 12 : 24;
 
   const timePoints = new Set<number>([0]);
-  for (let hour = stepHours; hour <= Math.ceil(elapsedHours); hour += stepHours) {
+  for (let hour = stepHours; hour < preciseElapsedHours; hour += stepHours) {
     timePoints.add(hour);
   }
-  timePoints.add(Math.ceil(elapsedHours));
+  timePoints.add(preciseElapsedHours);
 
   return Array.from(timePoints)
     .sort((a, b) => a - b)

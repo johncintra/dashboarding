@@ -152,7 +152,7 @@ export function DashboardView({ tvMode = false }: DashboardViewProps) {
                 <p className="mt-3 text-3xl font-semibold text-white">
                   {formatWholeNumber(data.summary.previous2)}
                 </p>
-                <p className="mt-2 text-sm text-amber-200">Lançamento de novembro</p>
+                <p className="mt-2 text-sm text-[#d7bf72]">Lançamento de novembro</p>
               </div>
             </div>
           </div>

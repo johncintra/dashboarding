@@ -78,7 +78,7 @@ function buildHourlySeries(
     return baseSeries;
   }
 
-  const maxHour = Math.max(1, Math.ceil(Math.max(safeElapsedHours, baseSeries.at(-1)?.time ?? 0)));
+  const maxHour = Math.max(1, Math.ceil(safeElapsedHours));
   const hourlySeries: DashboardSeriesPoint[] = [];
 
   for (let hour = 0; hour <= maxHour; hour += HOURLY_SAMPLE_STEP) {
@@ -87,6 +87,10 @@ function buildHourlySeries(
 
     if (exactPoint) {
       hourlySeries.push(exactPoint);
+      continue;
+    }
+
+    if (roundedHour > safeElapsedHours) {
       continue;
     }
 
