@@ -203,7 +203,12 @@ export function DashboardView({ tvMode = false }: DashboardViewProps) {
           footer="Total acumulado no ponto relativo atual da captação."
         />
         <StatCard
-          label="Vs. recente"
+          label={
+            <>
+              <span className="xl:hidden min-[1700px]:inline">Vs. recente</span>
+              <span className="hidden xl:inline min-[1700px]:hidden">Vs. Recen.</span>
+            </>
+          }
           value={formatPercent(data.summary.growth_vs_previous1)}
           accent="from-emerald-400/30 via-emerald-400/12 to-transparent"
           meta={<Badge tone="success">Recente</Badge>}
@@ -217,10 +222,21 @@ export function DashboardView({ tvMode = false }: DashboardViewProps) {
           footer={getDeltaFooter(lastDelta, "último")}
         />
         <StatCard
-          label="Captação histórica"
+          label={
+            <>
+              <span className="xl:hidden min-[1700px]:inline">Captação histórica</span>
+              <span className="hidden xl:inline min-[1700px]:hidden">Cap. Histór.</span>
+            </>
+          }
           value={formatWholeNumber(HISTORICAL_BEST_LEADS)}
           accent="from-fuchsia-400/30 via-fuchsia-400/12 to-transparent"
-          meta={<Badge tone="primary">História</Badge>}
+          meta={
+            <div className="mr-2">
+              <Badge tone="primary" className="px-2 tracking-[0.14em]">
+                História
+              </Badge>
+            </div>
+          }
           footer="Maior captação até hoje, registrada no L2602."
         />
       </section>

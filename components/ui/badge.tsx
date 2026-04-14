@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 type BadgeProps = {
   children: ReactNode;
   tone?: "primary" | "success" | "warning";
+  className?: string;
 };
 
 const toneClasses = {
@@ -11,10 +12,10 @@ const toneClasses = {
   warning: "bg-amber-400/10 text-amber-200 ring-amber-300/20",
 };
 
-export function Badge({ children, tone = "primary" }: BadgeProps) {
+export function Badge({ children, tone = "primary", className = "" }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] ring-1 ${toneClasses[tone]}`}
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] ring-1 ${toneClasses[tone]} ${className}`}
     >
       {children}
     </span>

@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 
 type StatCardProps = {
-  label: string;
+  label: ReactNode;
   value: string;
   accent?: string;
   accentClassName?: string;
