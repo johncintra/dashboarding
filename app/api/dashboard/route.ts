@@ -94,6 +94,23 @@ function withSpreadsheetMeta(
   };
 }
 
+function mergeCurveData(
+  basePayload: DashboardPayload,
+  curvePayload: DashboardPayload,
+): DashboardPayload {
+  return {
+    ...basePayload,
+    series: curvePayload.series,
+    meta: {
+      source: basePayload.meta?.source ?? "external-json",
+      ...(basePayload.meta ?? {}),
+      current_elapsed_hours: curvePayload.meta?.current_elapsed_hours,
+      current_elapsed_days: curvePayload.meta?.current_elapsed_days,
+      last_event_at: curvePayload.meta?.last_event_at,
+    },
+  };
+}
+
 function getCachedExternalPayload() {
   if (!cachedExternalPayload || !cachedExternalPayloadAt) {
     return null;
@@ -161,10 +178,35 @@ export async function GET() {
         cache_state: "fresh",
       });
 
-      cachedExternalPayload = enrichedPayload;
+      let finalPayload = enrichedPayload;
+
+      if (spreadsheetXlsxUrl) {
+        try {
+          const spreadsheetResponse = await fetchWithTimeout(spreadsheetXlsxUrl, {
+            cache: "no-store",
+          });
+
+          if (spreadsheetResponse.ok) {
+            const spreadsheetPayload = parseDashboardSpreadsheetBuffer(
+              Buffer.from(await spreadsheetResponse.arrayBuffer()),
+            );
+
+            finalPayload = mergeCurveData(
+              enrichedPayload,
+              withSpreadsheetMeta(spreadsheetPayload, {
+                cache_state: "fresh",
+              }),
+            );
+          }
+        } catch {
+          finalPayload = enrichedPayload;
+        }
+      }
+
+      cachedExternalPayload = finalPayload;
       cachedExternalPayloadAt = Date.now();
 
-      return NextResponse.json(enrichedPayload);
+      return NextResponse.json(finalPayload);
     }
 
     if (spreadsheetXlsxUrl) {

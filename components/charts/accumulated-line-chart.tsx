@@ -137,10 +137,18 @@ function buildAxisLabel(value: number, selectedDay: number | "all", dayStartHour
   return `${Math.round(value - dayStartHour)}h`;
 }
 
+function getDisplayDayRange(day: number) {
+  const start = (day - 1) * 24;
+  return {
+    start,
+    end: start + 24,
+  };
+}
+
 function buildTooltipTitle(axisValue: number) {
   const day = Math.floor(axisValue / 24) + 1;
-  const hours = Math.floor(axisValue % 24);
-  return `Dia ${day} · ${hours}h`;
+  const hour = Math.floor(axisValue % 24);
+  return `Dia ${day} · ${hour}h`;
 }
 
 export function AccumulatedLineChart({
@@ -156,8 +164,9 @@ export function AccumulatedLineChart({
   const axisMaxHours = Math.max(48, (visibleDayLabels - 1) * 24);
   const hourlySeries = buildHourlySeries(data, safeElapsedHours, summary);
 
-  const dayStartHour = selectedDay === "all" ? 0 : (selectedDay - 1) * 24;
-  const dayEndHour = selectedDay === "all" ? axisMaxHours : Math.min(selectedDay * 24, CAPTURE_DAYS * 24);
+  const selectedDayRange = selectedDay === "all" ? null : getDisplayDayRange(selectedDay);
+  const dayStartHour = selectedDayRange?.start ?? 0;
+  const dayEndHour = selectedDayRange?.end ?? axisMaxHours;
 
   const dayStartPoint = hourlySeries
     .filter((point) => point.time <= dayStartHour)

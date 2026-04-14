@@ -31,14 +31,12 @@ function parseCellDate(value: unknown): Date | null {
     }
 
     return new Date(
-      Date.UTC(
-        parsed.y,
-        parsed.m - 1,
-        parsed.d,
-        parsed.H,
-        parsed.M,
-        Math.floor(parsed.S),
-      ),
+      parsed.y,
+      parsed.m - 1,
+      parsed.d,
+      parsed.H,
+      parsed.M,
+      Math.floor(parsed.S),
     );
   }
 
@@ -68,7 +66,7 @@ function parseStartDateFromFormula(formula: string | undefined): Date | null {
   }
 
   const [, year, month, day] = match;
-  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 0, 0, 0));
+  return new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
 }
 
 function getSheetCellFormula(sheet: XLSX.WorkSheet, address: string): string | undefined {
