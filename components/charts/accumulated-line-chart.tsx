@@ -15,6 +15,7 @@ type AccumulatedLineChartProps = {
 };
 
 const CAPTURE_DAYS = 21;
+const HOURLY_SAMPLE_STEP = 0.25;
 
 function getNiceAxisMax(value: number) {
   if (value <= 10) {
@@ -44,7 +45,8 @@ function interpolateValue(
   }
 
   const ratio = (hour - left.time) / (right.time - left.time);
-  return left[key] + (right[key] - left[key]) * ratio;
+  const easedRatio = 0.5 - Math.cos(Math.PI * ratio) / 2;
+  return left[key] + (right[key] - left[key]) * easedRatio;
 }
 
 function buildHourlySeries(
@@ -79,20 +81,21 @@ function buildHourlySeries(
   const maxHour = Math.max(1, Math.ceil(Math.max(safeElapsedHours, baseSeries.at(-1)?.time ?? 0)));
   const hourlySeries: DashboardSeriesPoint[] = [];
 
-  for (let hour = 0; hour <= maxHour; hour += 1) {
-    const exactPoint = baseSeries.find((point) => point.time === hour);
+  for (let hour = 0; hour <= maxHour; hour += HOURLY_SAMPLE_STEP) {
+    const roundedHour = Number(hour.toFixed(2));
+    const exactPoint = baseSeries.find((point) => point.time === roundedHour);
 
     if (exactPoint) {
       hourlySeries.push(exactPoint);
       continue;
     }
 
-    const rightIndex = baseSeries.findIndex((point) => point.time > hour);
+    const rightIndex = baseSeries.findIndex((point) => point.time > roundedHour);
 
     if (rightIndex === -1) {
       const lastPoint = baseSeries.at(-1)!;
       hourlySeries.push({
-        time: hour,
+        time: roundedHour,
         current: lastPoint.current,
         previous1: lastPoint.previous1,
         previous2: lastPoint.previous2,
@@ -104,10 +107,10 @@ function buildHourlySeries(
     const leftPoint = baseSeries[Math.max(0, rightIndex - 1)];
 
     hourlySeries.push({
-      time: hour,
-      current: interpolateValue(hour, leftPoint, rightPoint, "current"),
-      previous1: interpolateValue(hour, leftPoint, rightPoint, "previous1"),
-      previous2: interpolateValue(hour, leftPoint, rightPoint, "previous2"),
+      time: roundedHour,
+      current: interpolateValue(roundedHour, leftPoint, rightPoint, "current"),
+      previous1: interpolateValue(roundedHour, leftPoint, rightPoint, "previous1"),
+      previous2: interpolateValue(roundedHour, leftPoint, rightPoint, "previous2"),
     });
   }
 
@@ -204,7 +207,7 @@ export function AccumulatedLineChart({
           .filter((point) => point.value?.[1] !== null)
           .map(
             (point) =>
-              `<div style="display:flex;justify-content:space-between;gap:20px;margin:6px 0;"><span style="color:${point.color}">${point.seriesName}</span><strong>${formatWholeNumber(point.value[1])}</strong></div>`,
+              `<div style="display:flex;justify-content:space-between;gap:20px;margin:6px 0;"><span style="color:${point.color}">${point.seriesName}</span><strong>${formatWholeNumber(Math.round(point.value[1]))}</strong></div>`,
           )
           .join("");
 
@@ -261,6 +264,7 @@ export function AccumulatedLineChart({
         name: "Atual",
         type: "line",
         smooth: true,
+        smoothMonotone: "x",
         symbol: "none",
         lineStyle: {
           width: 3,
@@ -276,6 +280,7 @@ export function AccumulatedLineChart({
         name: "Recente",
         type: "line",
         smooth: true,
+        smoothMonotone: "x",
         symbol: "none",
         lineStyle: {
           width: 3,
@@ -291,6 +296,7 @@ export function AccumulatedLineChart({
         name: "Último",
         type: "line",
         smooth: true,
+        smoothMonotone: "x",
         symbol: "none",
         lineStyle: {
           width: 3,
