@@ -127,8 +127,10 @@ function buildSeries(
 ): DashboardSeriesPoint[] {
   const elapsedHours = Math.max(0, elapsedMs / HOUR_MS);
   const preciseElapsedHours = Number(elapsedHours.toFixed(2));
-  const stepHours =
-    elapsedHours <= 48 ? 1 : elapsedHours <= 120 ? 6 : elapsedHours <= 240 ? 12 : 24;
+  // Mantemos a curva acumulada em resolução horária o ciclo inteiro.
+  // Isso evita que, ao entrar em novos dias, a linha passe a "subir" desde a meia-noite
+  // por falta de pontos intermediários logo no início do dia.
+  const stepHours = 1;
 
   const timePoints = new Set<number>([0]);
   for (let hour = stepHours; hour < preciseElapsedHours; hour += stepHours) {
