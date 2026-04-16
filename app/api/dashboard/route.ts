@@ -101,6 +101,7 @@ function mergeCurveData(
   return {
     ...basePayload,
     series: curvePayload.series,
+    daily: curvePayload.daily,
     meta: {
       source: basePayload.meta?.source ?? "external-json",
       ...(basePayload.meta ?? {}),
